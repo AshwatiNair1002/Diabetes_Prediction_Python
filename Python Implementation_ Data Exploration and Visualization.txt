@@ -1,0 +1,67 @@
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+#loading and exploring the dataset
+
+df = pd.read_excel('/content/gdrive/My Drive/HI2022/Healthcare-Diabetes.xlsx')
+print(df.head(10))
+print(df.shape)
+
+print(df.info())
+
+min_values = df.min()
+max_values = df.max()
+mean_values = df.mean()
+median_values = df.median()
+std_dev_values = df.std()
+
+print("Minimum Values:")
+print(min_values)
+print("\nMaximum values:")
+print(max_values)
+print("\nMean values:")
+print(mean_values)
+print("\nMedian values:")
+print(median_values)
+print("\nStandard deviation values:")
+print(std_dev_values)
+
+#Data Visualizations
+
+#boxplot
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(4,6))
+sns.boxplot(y='Age', data=df)
+plt.title('Box Plot of Ages')
+plt.show()
+
+#scatterplot
+sns.scatterplot(x='Glucose', y='Pregnancies', data=df)
+plt.title('Number of Pregnancies vs Glucose Reading')
+plt.show()
+
+#lineplot
+x_values = df['Age']
+y_values = df['Insulin']
+
+sns.lineplot(x=x_values, y=y_values, marker='o')
+
+plt.xlabel('Age')
+plt.ylabel('Insulin')
+plt.title('Age vs Serum Insulin Level')
+
+plt.show
+
+#pie chart
+outcome_counts = df['Outcome'].value_counts()
+
+plt.figure(figsize=(8,8))
+plt.pie(outcome_counts, labels=outcome_counts.index, autopct='%1.1f%%', startangle=140)
+plt.title('Breakdown of Diabetics(1) and Non-Diabetics(0)')
+plt.show()
+
+#pair plot
+sns.pairplot(data=df,vars=['Glucose', 'BMI', 'DiabetesPedigreeFunction'], hue = 'Outcome')
+plt.show()

@@ -1,0 +1,135 @@
+# Import Libraries
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import KFold, cross_val_score, GridSearchCV, StratifiedKFold
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from scipy.stats import f_oneway
+from sklearn.metrics import classification_report
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+import seaborn as sns
+import matplotlib.pyplot as pyplot
+sns.set(style="darkgrid")
+import warnings
+warnings.filterwarnings('ignore')
+%matplotlib inline
+
+# Mounting your Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Loading the dataset
+df = pd.read_excel('/content/drive/My Drive/HI 2022_Online/Healthcare-Diabetes.xlsx')
+print ("Dataset Length:", len(df))
+print ("Dataset Shape:", df.shape)
+df.head()
+
+# Overall Review of Data
+
+print ('Rows     : ', df.shape[0])
+print ('Columns  : ', df.shape[1])
+print ('\nFeatures : \n', df.columns.tolist())
+print ('\nMissing values :  ', df.isnull().sum().values.sum())
+print ('\nUnique values :  \n', df.nunique())
+
+# There data leans more to a large group that does not have diabetes (0).
+df['Outcome'].value_counts().plot(kind='bar').set_title('Diabetes')
+
+# Percentage that does have diabetes equals 34%
+df.Outcome.value_counts()[1] / df.Outcome.count()
+
+# To analyse feature-outcome distribution in visualisation
+features = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']
+
+ROWS, COLS = 2, 4
+fig, ax = plt.subplots(ROWS, COLS, figsize=(18,8) )
+row, col = 0, 0
+for i, feature in enumerate(features):
+    if col == COLS - 1:
+        row += 1
+    col = i % COLS
+    
+
+    df[df.Outcome==0][feature].hist(bins=35, color='blue', alpha=0.5, ax=ax[row, col]).set_title(feature)
+    df[df.Outcome==1][feature].hist(bins=35, color='red', alpha=0.7, ax=ax[row, col])
+    
+plt.legend(['No Diabetes', 'Diabetes'])
+fig.subplots_adjust(hspace=0.3)
+
+# there are zero values in Glucose, BloodPressure, SkinThickness, Insulin, BMI
+# need to replace zero by median, 2 steps: replace 0 by NaN, then replace NaN by median (so that 0 will not affect median)
+# after this step, run previous visualisation again
+
+df.Glucose.replace(0, np.nan, inplace=True)
+df.Glucose.replace(np.nan, df['Glucose'].median(), inplace=True)
+df.BloodPressure.replace(0, np.nan, inplace=True)
+df.BloodPressure.replace(np.nan, df['BloodPressure'].median(), inplace=True)
+df.SkinThickness.replace(0, np.nan, inplace=True)
+df.SkinThickness.replace(np.nan, df['SkinThickness'].median(), inplace=True)
+df.Insulin.replace(0, np.nan, inplace=True)
+df.Insulin.replace(np.nan, df['Insulin'].median(), inplace=True)
+df.BMI.replace(0, np.nan, inplace=True)
+df.BMI.replace(np.nan, df['BMI'].median(), inplace=True)
+
+# To analyse feature-outcome distribution in visualisation
+features = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']
+
+ROWS, COLS = 2, 4
+fig, ax = plt.subplots(ROWS, COLS, figsize=(18,8) )
+row, col = 0, 0
+for i, feature in enumerate(features):
+    if col == COLS - 1:
+        row += 1
+    col = i % COLS
+    
+    df[df.Outcome==0][feature].hist(bins=35, color='blue', alpha=0.5, ax=ax[row, col]).set_title(feature)
+    df[df.Outcome==1][feature].hist(bins=35, color='red', alpha=0.7, ax=ax[row, col])
+    
+plt.legend(['No Diabetes', 'Diabetes'])
+fig.subplots_adjust(hspace=0.3)
+
+# Baseline Model
+kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=100)
+
+X = df[['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']]
+y = df['Outcome']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# to give model baseline report in dataframe 
+def baseline_report(model, X_train, X_test, y_train, y_test, name):
+    model.fit(X_train, y_train)
+    accuracy     = np.mean(cross_val_score(model, X_train, y_train, cv=kf, scoring='accuracy'))
+    precision    = np.mean(cross_val_score(model, X_train, y_train, cv=kf, scoring='precision'))
+    f1score      = np.mean(cross_val_score(model, X_train, y_train, cv=kf, scoring='f1'))
+    y_pred = model.predict(X_test)
+
+    df_model = pd.DataFrame({'model'        : [name],
+                             'accuracy'     : [accuracy],
+                             'precision'    : [precision],
+                             'f1score'      : [f1score],})
+    return df_model
+
+# The Models being evaluated
+gnb = GaussianNB()
+logit = LogisticRegression()
+knn = KNeighborsClassifier()
+decisiontree = DecisionTreeClassifier()
+
+# to concat all models
+df_models = pd.concat([baseline_report(gnb, X_train, X_test, y_train, y_test, 'GaussianNB'),
+                       baseline_report(logit, X_train, X_test, y_train, y_test, 'LogisticRegression'),
+                       baseline_report(knn, X_train, X_test, y_train, y_test, 'KNN'),
+                       baseline_report(decisiontree, X_train, X_test, y_train, y_test, 'DecisionTree')
+                       ], axis=0).reset_index()
+df_models = df_models.drop('index', axis=1)
+df_models

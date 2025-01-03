@@ -1,0 +1,56 @@
+# Import libraries
+import pandas as pd
+import numpy as np
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import KFold
+
+# Mounting your Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Loading the dataset
+df = pd.read_excel('/content/drive/My Drive/HI 2022_Online/Healthcare-Diabetes.xlsx')
+print ("Dataset Length:", len(df))
+print ("Dataset Shape:", df.shape)
+df.head()
+
+# Seperating features from the target class (outcome/label)
+X = df.values[:, 0:9]
+Y = df.values[:, 9]
+
+# K-fold cross validation
+cv_data = KFold(n_splits=5, random_state=1, shuffle=True) # K-fold configuration
+results_NB = cross_validate(GaussianNB(), X, Y, cv=cv_data, scoring=['accuracy'], return_train_score=True) # NB
+results_DT = cross_validate(DecisionTreeClassifier(), X, Y, cv=cv_data, scoring=['accuracy'], return_train_score=True) # DT
+# Print 
+print("Accuracy score on the Train set using NB:", np.around(results_NB['train_accuracy'], 2))
+print("Mean Accuracy score on the Train set using NB: %.2f"% results_NB['train_accuracy'].mean())
+print("Accuracy score on Test set using NB:", np.around(results_NB['test_accuracy'], 3))
+print("Mean Accuracy score on the Test set using NB: %.2f" %results_NB['test_accuracy'].mean())
+print("\nAccuracy score on the Train set using DT:", np.around(results_DT['train_accuracy'], 2))
+print("Mean Accuracy score on the Train set using DT: %.2f"% results_DT['train_accuracy'].mean())
+print("Accuracy score on Test set using DT:", np.around(results_DT['test_accuracy'], 3))
+print("Mean Accuracy score on the Test set using DT: %.2f" %results_DT['test_accuracy'].mean())
+
+# Visualization: Visualizing the accuracy
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12,6))
+labels = ["1st Fold", "2nd Fold", "3rd Fold", "4th Fold", "5th Fold"]
+X_axis = np.arange(len(labels))
+ax = plt.gca()
+plt.bar(X_axis-0.2, results_NB['test_accuracy'], 0.4, color='blue', label='Test_NB')
+plt.bar(X_axis+0.2, results_DT['test_accuracy'], 0.4, color='yellow', label='Test_DT')
+plt.title("Accuracy", fontsize=30)
+plt.xticks(X_axis, labels)
+plt.xlabel("Accuracy in 5-fold", fontsize=14)
+plt.ylabel("Accuracy", fontsize=14)
+plt.legend()
+plt.grid(True)
+plt.show()
